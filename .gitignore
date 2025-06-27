@@ -1,0 +1,35 @@
+############################
+# Global Python artefacts  #
+############################
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.pyd
+.build/
+dist/
+.venv/
+.env/
+
+############################
+# IDE / OS noise           #
+############################
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+############################
+# Project-specific         #
+############################
+# 01-data-profiling-cli outputs
+01-data-profiling-cli/reports/
+01-data-profiling-cli/runs.db
+01-data-profiling-cli/runtime_vs_sample.png
+01-data-profiling-cli/all_chunks_summary.csv
+
+# raw or generated datasets (leave tiny fixtures under tests/)
+01-data-profiling-cli/data/
+*.parquet
+*.csv
