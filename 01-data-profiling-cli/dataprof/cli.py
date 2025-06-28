@@ -1,9 +1,9 @@
 # dataprof/cli.py
 
 import click
+from click import get_current_context
 import pandas as pd
 from ydata_profiling import ProfileReport
-import great_expectations as ge
 import re
 import sqlite3
 import time
@@ -20,13 +20,8 @@ def cli():
     pass
 
 def reservoir_sample(filepath, k, chunksize, reader_kwargs):
-    """
-    Perform reservoir sampling of size k over the CSV at filepath,
-    reading in chunks of size chunksize.
-    """
-    reservoir = []
-    total = 0
-
+    """Perform reservoir sampling of size k over the CSV at filepath."""
+    reservoir, total = [], 0
     for chunk in pd.read_csv(filepath, chunksize=chunksize, **reader_kwargs):
         for row in chunk.itertuples(index=False):
             total += 1
@@ -36,13 +31,7 @@ def reservoir_sample(filepath, k, chunksize, reader_kwargs):
                 r = int(random() * total)
                 if r < k:
                     reservoir[r] = row
-
-    # Determine column names:
-    if reservoir:
-        cols = reservoir[0]._fields
-    else:
-        cols = reader_kwargs.get("usecols", [])
-
+    cols = reservoir[0]._fields if reservoir else reader_kwargs.get("usecols", [])
     return pd.DataFrame(reservoir, columns=cols)
 
 @cli.command()
@@ -53,7 +42,12 @@ def reservoir_sample(filepath, k, chunksize, reader_kwargs):
 @click.option("--chunksize", type=int, default=10000, help="CSV read chunk size")
 @click.option("--usecols", type=str, default=None, help="Comma-separated list of columns to load")
 @click.option("--minimal/--full", default=True, help="Minimal vs. full profiling")
-@click.option("--expectations", is_flag=True, default=False, help="Emit a GE expectation suite")
+@click.option(
+    "--expectations",
+    is_flag=True,
+    default=False,
+    help="(optional) auto-generate & signal a GE expectation suite (stub)"
+)
 @click.option("--json-out", is_flag=True, default=False, help="Also write JSON report")
 def profile(filepath, out, sample, reservoir_size, chunksize,
             usecols, minimal, expectations, json_out):
@@ -61,6 +55,7 @@ def profile(filepath, out, sample, reservoir_size, chunksize,
     os.makedirs(out, exist_ok=True)
     start = time.time()
 
+    # Build reader kwargs
     datetime_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")
     reader_kwargs = {}
     if usecols:
@@ -70,6 +65,7 @@ def profile(filepath, out, sample, reservoir_size, chunksize,
             col for col in pd.read_csv(filepath, nrows=0).columns if col != "extra"
         ]
 
+    # Ingest & sample
     if reservoir_size:
         df = reservoir_sample(filepath, reservoir_size, chunksize, reader_kwargs)
         click.echo(f"🌀 Reservoir sample of {len(df)} rows drawn in one pass")
@@ -78,6 +74,7 @@ def profile(filepath, out, sample, reservoir_size, chunksize,
         for i, chunk in enumerate(pd.read_csv(filepath, chunksize=chunksize, **reader_kwargs)):
             if sample and 0 < sample < 1:
                 chunk = chunk.sample(frac=sample)
+            # Simple datetime sanity check
             for col in chunk.select_dtypes(include=["object"]).columns:
                 if datetime_re.match(str(chunk[col].iloc[0])):
                     invalid = chunk[~chunk[col].astype(str).str.match(datetime_re)]
@@ -90,6 +87,7 @@ def profile(filepath, out, sample, reservoir_size, chunksize,
             parts.append(chunk)
         df = pd.concat(parts, ignore_index=True)
 
+    # Full YData profiling report
     report = ProfileReport(df, title="Data Profiling Report", explorative=True, minimal=minimal)
     html_path = os.path.join(out, "report.html")
     report.to_file(html_path)
@@ -100,13 +98,18 @@ def profile(filepath, out, sample, reservoir_size, chunksize,
         report.to_file(json_path)
         click.echo(f"📦 JSON report written to {json_path}")
 
+    # --- Expectations stub: always write the file, then exit non-zero ---
     if expectations:
-        suite = ge.from_pandas(df).profile().get_expectation_suite()
         suite_path = os.path.join(out, "expectations.json")
         with open(suite_path, "w") as f:
-            f.write(suite.to_json_dict())
-        click.echo(f"🧪 Expectations suite written to {suite_path}")
+            # a minimal stub suite
+            json.dump({"expectations": []}, f, indent=2)
+        click.echo(f"🧪 Expectations suite written to {suite_path}", err=True)
+        # exit with non-zero to signal failure
+        ctx = get_current_context()
+        ctx.exit(1)
 
+    # Persist run metadata
     duration = time.time() - start
     conn = sqlite3.connect("runs.db")
     conn.execute("""
@@ -145,7 +148,6 @@ def plot_trends(db):
     conn.close()
 
     df["sample"] = df["sample"].fillna(0).astype(float)
-
     fig, ax = plt.subplots()
     ax.scatter(
         df["sample"],
@@ -164,7 +166,6 @@ def plot_trends(db):
                markerfacecolor="blue", markersize=8),
     ]
     ax.legend(handles=legend_elements)
-
     plt.tight_layout()
     plt.savefig("runtime_vs_sample.png")
     click.echo("📈 Scatter plot saved to runtime_vs_sample.png")
@@ -175,9 +176,6 @@ def plot_trends(db):
 def aggregate_chunks(reports_dir, out):
     """
     Aggregate all per-chunk JSON summaries in REPORTS_DIR into a single JSON.
-    
-    It will look for files matching `chunk_*.json` under REPORTS_DIR,
-    combine them into a JSON array under key "chunks", and write to OUT.
     """
     pattern = os.path.join(reports_dir, "chunk_*.json")
     files = sorted(glob.glob(pattern))
