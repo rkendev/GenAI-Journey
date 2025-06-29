@@ -17,11 +17,11 @@ from matplotlib.lines import Line2D
 from ydata_profiling import ProfileReport
 
 app = typer.Typer(
-    help="🛠️  Data Profiling CLI: generate profiling reports and monitor performance trends.",
+    help="🛠️  **Data Profiling CLI**: generate profiling reports and monitor performance trends.",
     add_completion=True,
     rich_markup_mode="markdown",
 )
-cli = app  # entry‐point alias
+cli = app  # alias for poetry entry point
 
 
 def reservoir_sample(
@@ -44,8 +44,11 @@ def reservoir_sample(
 
 @app.command("profile", no_args_is_help=True)
 def profile(
+    # ─── I/O Options ─────────────────────────────────────────────────────────
     filepath: Path = typer.Argument(
-        ..., exists=True, help="📄 Path to the input CSV or table file."
+        ...,
+        exists=True,
+        help="📄 **Path** to the input CSV or table file.",
     ),
     out: Path = typer.Option(
         Path("reports"),
@@ -53,31 +56,40 @@ def profile(
         "-o",
         dir_okay=True,
         file_okay=False,
-        help="📂 Output directory for reports (will be created).",
+        help="📂 **Output directory** for reports (will be created).",
     ),
+    # ─── Sampling Options ─────────────────────────────────────────────────────
     sample: float = typer.Option(
         None,
         "--sample",
-        help="🎲 Random fraction 0–1 to sample each chunk (ignored if `--reservoir-size`).",
+        help="🎲 Random fraction _0–1_ to sample each chunk (ignored if `--reservoir-size`).",
     ),
     reservoir_size: int = typer.Option(
         None,
         "--reservoir-size",
-        help="🌀 One-pass reservoir sample size (takes precedence).",
+        help="🌀 One-pass reservoir sample size (takes precedence over `--sample`).",
     ),
     chunksize: int = typer.Option(
-        10_000, "--chunksize", help="📑 Number of rows per read chunk for large files."
+        10_000,
+        "--chunksize",
+        help="📑 Number of rows per read chunk for large files.",
     ),
+    # ─── Quality Options ───────────────────────────────────────────────────────
     expectations: bool = typer.Option(
         False,
         "--expectations",
-        help="✅ Auto-generate & validate a GE expectation suite (stub).",
+        help="✅ Auto-generate & validate a Great Expectations suite (stub).",
     ),
+    # ─── Miscellaneous Options ─────────────────────────────────────────────────
     minimal: bool = typer.Option(
-        True, "--minimal/--full", help="⚙️ Use minimal (fast) or full profiling report."
+        True,
+        "--minimal/--full",
+        help="⚙️ Use **minimal** (fast) or **full** profiling report.",
     ),
     json_out: bool = typer.Option(
-        False, "--json-out", help="📦 Also emit a JSON version of the final report."
+        False,
+        "--json-out",
+        help="📦 Also emit a JSON version of the final report.",
     ),
 ):
     """
@@ -87,12 +99,12 @@ def profile(
     os.makedirs(out, exist_ok=True)
     start = time.time()
 
-    # build reader kwargs (ignore any "extra" column)
+    # Build reader kwargs (ignore any "extra" column)
     reader_kwargs = {
         "usecols": [c for c in pd.read_csv(filepath, nrows=0).columns if c != "extra"]
     }
 
-    # ingest & sample
+    # Ingest & sample
     if reservoir_size:
         df = reservoir_sample(filepath, reservoir_size, chunksize, reader_kwargs)
         typer.echo(f"🌀 Reservoir sample of {len(df)} rows drawn in one pass")
@@ -120,7 +132,7 @@ def profile(
             parts.append(chunk)
         df = pd.concat(parts, ignore_index=True)
 
-    # full profiling report
+    # Full profiling report
     report = ProfileReport(
         df, title="Data Profiling Report", explorative=True, minimal=minimal
     )
@@ -133,7 +145,7 @@ def profile(
         report.to_file(json_path)
         typer.echo(f"📦 JSON report written to {json_path}")
 
-    # expectations stub
+    # Expectations stub
     if expectations:
         suite_path = out / "expectations.json"
         with open(suite_path, "w") as f:
@@ -145,30 +157,30 @@ def profile(
         )
         get_current_context().exit(1)
 
-    # persist run metadata
+    # Persist run metadata
     duration = time.time() - start
     conn = sqlite3.connect("runs.db")
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS runs (
-          file       TEXT PRIMARY KEY,
-          duration   REAL,
-          sample     REAL,
-          chunksize  INTEGER,
-          reservoir  INTEGER DEFAULT 0,
-          timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
+      CREATE TABLE IF NOT EXISTS runs (
+        file       TEXT PRIMARY KEY,
+        duration   REAL,
+        sample     REAL,
+        chunksize  INTEGER,
+        reservoir  INTEGER DEFAULT 0,
+        timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
     """
     )
     conn.execute(
         """
-        INSERT INTO runs (file, duration, sample, chunksize, reservoir)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(file) DO UPDATE SET
-          duration  = excluded.duration,
-          sample    = excluded.sample,
-          chunksize = excluded.chunksize,
-          reservoir = excluded.reservoir
+      INSERT INTO runs (file, duration, sample, chunksize, reservoir)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(file) DO UPDATE SET
+        duration  = excluded.duration,
+        sample    = excluded.sample,
+        chunksize = excluded.chunksize,
+        reservoir = excluded.reservoir
     """,
         (str(filepath), duration, sample or 0.0, chunksize, reservoir_size or 0),
     )
@@ -203,7 +215,6 @@ def plot_trends(
     ax.set_xlabel("Sample Fraction")
     ax.set_ylabel("Duration (s)")
     ax.set_title("Duration vs. Sample Fraction")
-
     legend_elems = [
         Line2D(
             [0],

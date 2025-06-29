@@ -1,61 +1,58 @@
 # Data Profiling CLI
 
-[![PyPI version](https://img.shields.io/pypi/v/dataprof.svg)](https://pypi.org/project/dataprof)  
-[![Build Status](https://github.com/your-org/dataprof/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/dataprof/actions)  
+[![PyPI version](https://img.shields.io/pypi/v/dataprof.svg)](https://pypi.org/project/dataprof)
+[![GitHub Actions CI](https://github.com/rkendev/dataprof/actions/workflows/ci.yml/badge.svg)](https://github.com/rkendev/dataprof/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A **fast**, **extensible** command-line tool for generating HTML (and JSON) profiling reports on CSV or table-like data, powered by [ydata-profiling](https://github.com/ydataai/ydata-profiling) and with optional Great Expectations validation stubs.
+A fast, extensible command-line interface for profiling tabular data.  
+Supports chunk-wise sampling, reservoir sampling, minimal vs. full reports,  
+and optional Great Expectations expectation-suite stubs.
 
 ## Features
 
-- **Fast sampling**: reservoir or fractional sampling for huge files  
-- **Chunked summaries**: per-chunk JSON + final consolidated HTML  
-- **Validation stub**: drop-in Great Expectations suite with non-zero exit  
-- **Run-history**: stores profiling runtimes in `runs.db` and scatter-plots trends  
-- **Shell completion**: `bash`, `zsh`, `fish` out of the box  
+- **Fast profiling** via [YData-Profiling](https://github.com/ydataai/ydata-profiling)  
+- **Chunked ingestion** with on-the-fly sampling or reservoir sampling  
+- **HTML & JSON** output formats  
+- **Data-quality stubs** (Great Expectations suite) and non-zero exit on failures  
+- **Built-in trend plotting** and chunk-aggregation utilities  
+- **Shell completion** for Bash, Zsh, Fish  
 
 ## Installation
 
 ```bash
-# via Poetry:
-poetry add dataprof
-
-# or with pip:
+# From PyPI
 pip install dataprof
-Usage
 
-# basic profile
-dataprof profile data.csv --out reports
+# Or from local source
+poetry install
+poetry run pip install .
+```
 
-# reservoir sampling
-dataprof profile data.csv --reservoir-size 5000 --out rpt
+# Quickstart
 
-# generate & validate stub suite
-dataprof profile data.csv --expectations --minimal
+# Profile a CSV with minimal report
+dataprof profile data.csv --minimal --out reports/
 
-# plot historical runtimes
+# Generate a Great Expectations stub and fail on validation
+dataprof profile data.csv --expectations
+
+# Plot runtime vs. sample fraction
 dataprof plot-trends --db runs.db
 
-# aggregate chunk summaries
-dataprof aggregate-chunks reports --out summary.json
+# Aggregate per-chunk summaries
+dataprof aggregate-chunks reports/ --out summary.json
 ```
 
 # Contributing
+We use pre-commit hooks to enforce formatting and linting:
+
 ```bash
-git clone ... && cd dataprof
-
-poetry install
-
-pre-commit install (if using pre-commit)
-
-pytest
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
 ```
-MIT © rken
 
+Please open issues or pull requests on GitHub.
+
+© 2025 rken — MIT License
 ---
-
-### Next
-
-1. **Swap in** the above files.  
-2. Run the pip‐install smoke test in a clean venv to confirm the entry point works.  
-3. If all good, you’re ready to publish to PyPI or wire up your CI workflow.
