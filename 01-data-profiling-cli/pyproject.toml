@@ -1,6 +1,6 @@
 [tool.poetry]
 name        = "dataprof"
-version     = "0.1.1"
+version     = "0.1.2"
 description = "A fast, extensible CLI for profiling tabular data, with optional sampling, outlier detection, and Great Expectations integration."
 readme      = "README.md"
 license     = "MIT"
