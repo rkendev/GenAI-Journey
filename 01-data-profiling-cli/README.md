@@ -8,51 +8,55 @@ A fast, extensible command-line interface for profiling tabular data.
 Supports chunk-wise sampling, reservoir sampling, minimal vs. full reports,  
 and optional Great Expectations expectation-suite stubs.
 
-## Features
-
-- **Fast profiling** via [YData-Profiling](https://github.com/ydataai/ydata-profiling)  
-- **Chunked ingestion** with on-the-fly sampling or reservoir sampling  
-- **HTML & JSON** output formats  
-- **Data-quality stubs** (Great Expectations suite) and non-zero exit on failures  
-- **Built-in trend plotting** and chunk-aggregation utilities  
-- **Shell completion** for Bash, Zsh, Fish  
-
 ## Installation
 
 ```bash
 # From PyPI
 pip install dataprof
 
-# Or from local source
+# Or from source
 poetry install
 poetry run pip install .
-```
+Quickstart
 
-# Quickstart
-
-# Profile a CSV with minimal report
+# 1) Generate a minimal HTML profile
 dataprof profile data.csv --minimal --out reports/
 
-# Generate a Great Expectations stub and fail on validation
+# 2) Emit a GE expectation stub and fail on validation
 dataprof profile data.csv --expectations
 
-# Plot runtime vs. sample fraction
+# 3) Plot runtime vs. sample fraction
 dataprof plot-trends --db runs.db
 
-# Aggregate per-chunk summaries
+# 4) Aggregate per-chunk summaries into one JSON
 dataprof aggregate-chunks reports/ --out summary.json
 ```
 
-# Contributing
-We use pre-commit hooks to enforce formatting and linting:
+---
+
+## 5. End-to-End Commands
+
+Run these in your project root **after** committing the above files:
 
 ```bash
-pip install pre-commit
+# 1. Re-lock & install
+poetry lock
+poetry install          # now installs both main+dev thanks to group.dev
+
+# 2. Pre-commit checks & formatting
 pre-commit install
 pre-commit run --all-files
+
+# 3. Run tests
+poetry run pytest -q
+
+# 4. Smoke-test locally
+poetry run dataprof --version
+echo -e "x,y\n1,2" > sample.csv
+poetry run dataprof profile sample.csv --minimal --out demo
+ls demo
+
+# 5. Build for release (you’ll publish later)
+poetry build
+
 ```
-
-Please open issues or pull requests on GitHub.
-
-© 2025 rken — MIT License
----

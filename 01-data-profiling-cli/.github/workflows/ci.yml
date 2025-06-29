@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: 3.12
       - run: python -m pip install poetry
-      - run: poetry install
+      - run: poetry install --with dev
       - run: poetry run pytest -q
 
   smoke:
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.12
-      - run: python -m pip install . 
+      - run: python -m pip install .
       - run: |
           echo -e "a,b\n1,2\n3,4" > smoke.csv
           dataprof profile smoke.csv --minimal --out smoke
