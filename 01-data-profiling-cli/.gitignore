@@ -1,0 +1,33 @@
+# Byte‐compiled / cache
+__pycache__/
+*.py[cod]
+*.pytest_cache/
+
+# Poetry & builds
+.poetry/
+dist/
+build/
+*.egg-info/
+venv-pypi/
+.poetry/*
+
+# Virtual environments
+.venv/
+venv/
+smoke-venv/
+
+# Reports & temp outputs
+out/
+test-reports/
+smoke/
+temp/
+reports/
+*.db
+runtime_vs_sample.png
+
+# Editor & OS
+.vscode/
+*.swp
+.DS_Store
+
+
