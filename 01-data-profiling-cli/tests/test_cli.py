@@ -1,7 +1,6 @@
 import subprocess
 import sys
-import tempfile
-from pathlib import Path
+
 
 def test_expectations_exit_code(tmp_path):
     # 1. Create a tiny “bad.csv” that violates an expectation
@@ -10,9 +9,19 @@ def test_expectations_exit_code(tmp_path):
 
     # 2. Invoke the CLI with --expectations
     result = subprocess.run(
-        [sys.executable, "-m", "dataprof", "profile", str(bad),
-         "--out", str(tmp_path / "out"), "--minimal", "--expectations"],
-        capture_output=True, text=True
+        [
+            sys.executable,
+            "-m",
+            "dataprof",
+            "profile",
+            str(bad),
+            "--out",
+            str(tmp_path / "out"),
+            "--minimal",
+            "--expectations",
+        ],
+        capture_output=True,
+        text=True,
     )
 
     # 3. Assert it fails (non-zero exit) and produced the suite file

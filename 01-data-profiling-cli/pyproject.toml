@@ -1,10 +1,20 @@
 [tool.poetry]
 name        = "dataprof"
 version     = "0.1.0"
-description = ""
+description = "A fast, extensible CLI for profiling tabular data with HTML/JSON reports and optional Great Expectations integration."
 authors     = ["rken <aspjscript@hotmail.com>"]
 readme      = "README.md"
-packages    = [{ include = "dataprof" }]
+license     = "MIT"
+keywords    = ["data", "profiling", "CLI", "reports", "ydata-profiling", "Great Expectations"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+packages = [
+  { include = "dataprof" }
+]
 
 [tool.poetry.dependencies]
 python              = ">=3.11,<3.13"
@@ -14,14 +24,20 @@ numpy               = ">=1.26.4,<1.27.0"
 pysqlite3-binary    = ">=0.5.4,<0.6.0"
 ydata-profiling     = ">=4.16.1,<5.0.0"
 setuptools          = ">=80.9.0,<81.0.0"
-pytest              = "^7.0"
-typer = {extras = ["all"], version = "^0.16.0"}
+typer               = { extras = ["all"], version = "^0.16.0" }
+cloup               = "^3.0.7"
 
 [tool.poetry.extras]
-validation = ["great-expectations"]        # users opt in via pip install .[validation] :contentReference[oaicite:1]{index=1}
+validation = ["great-expectations"]
 
 [tool.poetry.scripts]
 dataprof = "dataprof.cli:cli"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^4.2.0"
+black = "^25.1.0"
+ruff = "^0.12.1"
+isort = "^6.0.1"
 
 [build-system]
 requires    = ["poetry-core>=2.0.0,<3.0.0"]

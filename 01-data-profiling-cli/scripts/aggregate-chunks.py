@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-import os
 import json
+import os
+
 import click
 import pandas as pd
+
 
 @click.command()
 @click.option(
@@ -40,7 +42,7 @@ def main(root: str, out: str):
             n_rows = table.get("n_rows", table.get("n", None))
             n_vars = table.get("n_vars", table.get("n_columns", None))
             p_cells_missing = table.get("p_cells_missing")  # global % missing cells
-            p_unique = table.get("p_unique")               # global fraction unique rows
+            p_unique = table.get("p_unique")  # global fraction unique rows
 
             # 2) Legacy 'missing': average pct missing per variable
             missing_info = data.get("missing", {}).get("p_missing_var", {})
@@ -51,7 +53,11 @@ def main(root: str, out: str):
                 var_dict = data.get("variables", {})
                 pct_list = []
                 for v in var_dict.values():
-                    mp = v.get("p_cells_missing") or v.get("p_missing") or v.get("p_missing_var")
+                    mp = (
+                        v.get("p_cells_missing")
+                        or v.get("p_missing")
+                        or v.get("p_missing_var")
+                    )
                     if isinstance(mp, (int, float)):
                         pct_list.append(mp)
                 if pct_list:
@@ -67,14 +73,16 @@ def main(root: str, out: str):
                         # try the 'mean' field inside
                         p_unique = dup_info.get("mean")
 
-            records.append({
-                "chunk_path":            rel_path,
-                "n_rows":                n_rows,
-                "n_vars":                n_vars,
-                "pct_cells_missing":     p_cells_missing,
-                "pct_missing_per_var_avg": p_missing_var_mean,
-                "pct_unique":            p_unique,
-            })
+            records.append(
+                {
+                    "chunk_path": rel_path,
+                    "n_rows": n_rows,
+                    "n_vars": n_vars,
+                    "pct_cells_missing": p_cells_missing,
+                    "pct_missing_per_var_avg": p_missing_var_mean,
+                    "pct_unique": p_unique,
+                }
+            )
 
     # Guard: no chunk files found
     if not records:
@@ -96,6 +104,7 @@ def main(root: str, out: str):
     df = df.sort_values("chunk_path").reset_index(drop=True)
     df.to_csv(out, index=False)
     click.echo(f"✅ Aggregated {len(df)} chunk files into '{out}'")
+
 
 if __name__ == "__main__":
     main()
