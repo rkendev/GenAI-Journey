@@ -21,7 +21,7 @@ app = typer.Typer(
     add_completion=True,
     rich_markup_mode="markdown",
 )
-cli = app  # alias for poetry entry point
+cli = app  # alias for the poetry entry point
 
 
 def reservoir_sample(
@@ -78,7 +78,7 @@ def profile(
     expectations: bool = typer.Option(
         False,
         "--expectations",
-        help="✅ Auto-generate & validate a Great Expectations suite (stub).",
+        help="✅ Auto-generate a Great Expectations expectation-suite stub (then exit non-zero).",
     ),
     # ─── Miscellaneous Options ─────────────────────────────────────────────────
     minimal: bool = typer.Option(
@@ -96,7 +96,23 @@ def profile(
     Generate fast HTML (and optional JSON) profiling reports,
     with optional data-quality stubs.
     """
+    # ensure output dir exists
     os.makedirs(out, exist_ok=True)
+
+    # If user just wants a GE stub, write it and exit non-zero immediately
+    if expectations:
+        suite = {"expectations": []}
+        suite_path = out / "expectations.json"
+        with open(suite_path, "w") as f:
+            json.dump(suite, f, indent=2)
+        typer.secho(
+            f"🧪 Expectations suite written to {suite_path}",
+            fg=typer.colors.CYAN,
+            err=True,
+        )
+        # non-zero exit to indicate "validation stub" mode
+        get_current_context().exit(1)
+
     start = time.time()
 
     # Build reader kwargs (ignore any "extra" column)
@@ -145,42 +161,30 @@ def profile(
         report.to_file(json_path)
         typer.echo(f"📦 JSON report written to {json_path}")
 
-    # Expectations stub
-    if expectations:
-        suite_path = out / "expectations.json"
-        with open(suite_path, "w") as f:
-            json.dump({"expectations": []}, f, indent=2)
-        typer.secho(
-            f"🧪 Expectations suite written to {suite_path}",
-            fg=typer.colors.CYAN,
-            err=True,
-        )
-        get_current_context().exit(1)
-
     # Persist run metadata
     duration = time.time() - start
     conn = sqlite3.connect("runs.db")
     conn.execute(
         """
-      CREATE TABLE IF NOT EXISTS runs (
-        file       TEXT PRIMARY KEY,
-        duration   REAL,
-        sample     REAL,
-        chunksize  INTEGER,
-        reservoir  INTEGER DEFAULT 0,
-        timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+        CREATE TABLE IF NOT EXISTS runs (
+          file       TEXT PRIMARY KEY,
+          duration   REAL,
+          sample     REAL,
+          chunksize  INTEGER,
+          reservoir  INTEGER DEFAULT 0,
+          timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
     """
     )
     conn.execute(
         """
-      INSERT INTO runs (file, duration, sample, chunksize, reservoir)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(file) DO UPDATE SET
-        duration  = excluded.duration,
-        sample    = excluded.sample,
-        chunksize = excluded.chunksize,
-        reservoir = excluded.reservoir
+        INSERT INTO runs (file, duration, sample, chunksize, reservoir)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(file) DO UPDATE SET
+          duration  = excluded.duration,
+          sample    = excluded.sample,
+          chunksize = excluded.chunksize,
+          reservoir = excluded.reservoir
     """,
         (str(filepath), duration, sample or 0.0, chunksize, reservoir_size or 0),
     )
@@ -194,7 +198,7 @@ def profile(
 def plot_trends(
     db: Path = typer.Option(
         Path("runs.db"), "--db", help="SQLite DB file containing profiling runs."
-    ),
+    )
 ):
     """Plot runtime vs. sample-fraction trends from the runs table."""
     conn = sqlite3.connect(db)

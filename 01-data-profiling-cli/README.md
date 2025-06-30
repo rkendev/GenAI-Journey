@@ -17,46 +17,46 @@ pip install dataprof
 # Or from source
 poetry install
 poetry run pip install .
-Quickstart
+```
 
-# 1) Generate a minimal HTML profile
+# Quickstart
+
+# 1️⃣ Generate a minimal HTML profile
 dataprof profile data.csv --minimal --out reports/
 
-# 2) Emit a GE expectation stub and fail on validation
+# 2️⃣ Emit a GE expectation stub and fail on validation
 dataprof profile data.csv --expectations
 
-# 3) Plot runtime vs. sample fraction
+# 3️⃣ Plot runtime vs. sample fraction
 dataprof plot-trends --db runs.db
 
-# 4) Aggregate per-chunk summaries into one JSON
+# 4️⃣ Aggregate per-chunk summaries into one JSON
 dataprof aggregate-chunks reports/ --out summary.json
-```
+
 
 ---
 
 ## 5. End-to-End Commands
 
-Run these in your project root **after** committing the above files:
+Run these from your project root to lock, install, lint, test, smoke-test and build:
 
 ```bash
-# 1. Re-lock & install
+# 1. Update lock and install all deps (main+dev):
 poetry lock
-poetry install          # now installs both main+dev thanks to group.dev
+poetry install
 
-# 2. Pre-commit checks & formatting
+# 2. Set up and run pre-commit hooks:
 pre-commit install
 pre-commit run --all-files
 
-# 3. Run tests
+# 3. Execute the test suite:
 poetry run pytest -q
 
-# 4. Smoke-test locally
-poetry run dataprof --version
+# 4. Smoke-test the CLI locally:
 echo -e "x,y\n1,2" > sample.csv
 poetry run dataprof profile sample.csv --minimal --out demo
 ls demo
+```bash
 
-# 5. Build for release (you’ll publish later)
+# 5. Build distributable packages:
 poetry build
-
-```
