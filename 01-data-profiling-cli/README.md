@@ -58,5 +58,22 @@ poetry run dataprof profile sample.csv --minimal --out demo
 ls demo
 ```bash
 
+
+### 5.1 For cown excel files
+```bash
+# 1) Reservoir sampling
+dataprof profile large.csv --reservoir-size 100 --out reports/
+
+# 2) Chunk-wise minimal profiling
+dataprof profile data.csv --sample 0.1 --minimal --out reports/
+
+# 3) Plotting trends
+dataprof plot-trends --db runs.db
+
+# 4) Aggregating chunks
+dataprof aggregate-chunks reports/ --out summary.json
+```
+
+
 # 5. Build distributable packages:
 poetry build

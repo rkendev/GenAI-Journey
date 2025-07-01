@@ -24,6 +24,9 @@ pysqlite3-binary    = ">=0.5.4,<0.6.0"
 ydata-profiling     = ">=4.16.1,<5.0.0"
 typer               = {extras = ["all"], version = "^0.16.0"}
 cloup               = "^3.0.7"
+pyarrow = "^20.0.0"
+fastparquet = "^2024.11.0"
+openpyxl = "^3.1.5"
 
 [tool.poetry.extras]
 validation = ["great-expectations"]
@@ -32,6 +35,14 @@ validation = ["great-expectations"]
 pytest              = "^7.0"
 pre-commit          = "^3.4.0"
 great-expectations  = "^1.5.3"
+sphinx = "^8.2.3"
+sphinx-rtd-theme = "^3.0.2"
+pyyaml = "^6.0.2"
+
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^8.2.3"
+sphinx-rtd-theme = "^3.0.2"
 
 [tool.poetry.scripts]
 dataprof = "dataprof.cli:cli"

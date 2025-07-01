@@ -8,10 +8,12 @@ import sqlite3
 import time
 from pathlib import Path
 from random import random
+from typing import Any, Dict, Iterator, Union
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import typer
+import yaml
 from click import get_current_context
 from matplotlib.lines import Line2D
 from ydata_profiling import ProfileReport
@@ -21,15 +23,35 @@ app = typer.Typer(
     add_completion=True,
     rich_markup_mode="markdown",
 )
-cli = app  # alias for the poetry entry point
+cli = app  # alias for the entry point
+
+
+def load_data(
+    filepath: Path,
+    reader_kwargs: Dict[str, Any],
+    chunksize: Union[int, None] = None,
+) -> Iterator[pd.DataFrame]:
+    """
+    Yield DataFrame chunks—or a single DataFrame—for CSV, Parquet, Excel.
+    """
+    ext = filepath.suffix.lower()
+    if ext == ".csv":
+        yield from pd.read_csv(filepath, chunksize=chunksize, **reader_kwargs)
+    elif ext in {".parquet", ".pq"}:
+        yield pd.read_parquet(filepath, **reader_kwargs)
+    elif ext in {".xls", ".xlsx"}:
+        yield pd.read_excel(filepath, **reader_kwargs)
+    else:
+        typer.secho(f"❓ Unsupported format: {ext}", fg=typer.colors.RED)
+        raise typer.Exit(1)
 
 
 def reservoir_sample(
     filepath: Path, k: int, chunksize: int, reader_kwargs: dict
 ) -> pd.DataFrame:
-    """Perform reservoir sampling of size k over the CSV at filepath."""
+    """Perform reservoir sampling of size k over the file at filepath."""
     reservoir, total = [], 0
-    for chunk in pd.read_csv(filepath, chunksize=chunksize, **reader_kwargs):
+    for chunk in load_data(filepath, reader_kwargs, chunksize):
         for row in chunk.itertuples(index=False):
             total += 1
             if len(reservoir) < k:
@@ -44,11 +66,11 @@ def reservoir_sample(
 
 @app.command("profile", no_args_is_help=True)
 def profile(
-    # ─── I/O Options ─────────────────────────────────────────────────────────
+    # ─── I/O Options ───────────────────────────────────────────────
     filepath: Path = typer.Argument(
         ...,
         exists=True,
-        help="📄 **Path** to the input CSV or table file.",
+        help="📄 Path to a CSV, Parquet or Excel file.",
     ),
     out: Path = typer.Option(
         Path("reports"),
@@ -56,156 +78,157 @@ def profile(
         "-o",
         dir_okay=True,
         file_okay=False,
-        help="📂 **Output directory** for reports (will be created).",
+        help="📂 Output directory (will be created).",
     ),
-    # ─── Sampling Options ─────────────────────────────────────────────────────
+    config: Path = typer.Option(
+        None,
+        "--config",
+        help="🔧 YAML file with extra ProfileReport parameters.",
+    ),
+    # ─── Sampling Options ───────────────────────────────────────────
     sample: float = typer.Option(
         None,
         "--sample",
-        help="🎲 Random fraction _0–1_ to sample each chunk (ignored if `--reservoir-size`).",
+        help="🎲 Random fraction 0–1 per chunk (ignored if --reservoir-size).",
     ),
     reservoir_size: int = typer.Option(
         None,
         "--reservoir-size",
-        help="🌀 One-pass reservoir sample size (takes precedence over `--sample`).",
+        help="🌀 Size for one-pass reservoir sampling.",
     ),
     chunksize: int = typer.Option(
         10_000,
         "--chunksize",
-        help="📑 Number of rows per read chunk for large files.",
+        help="📑 Rows per chunk for large files.",
     ),
-    # ─── Quality Options ───────────────────────────────────────────────────────
+    # ─── Quality Options ────────────────────────────────────────────
     expectations: bool = typer.Option(
         False,
         "--expectations",
-        help="✅ Auto-generate a Great Expectations expectation-suite stub (then exit non-zero).",
+        help="✅ Emit GE stub and exit non-zero.",
     ),
-    # ─── Miscellaneous Options ─────────────────────────────────────────────────
+    # ─── Miscellaneous Options ───────────────────────────────────────
     minimal: bool = typer.Option(
         True,
         "--minimal/--full",
-        help="⚙️ Use **minimal** (fast) or **full** profiling report.",
+        help="⚙️ Minimal (fast) or full profiling report.",
     ),
     json_out: bool = typer.Option(
         False,
         "--json-out",
-        help="📦 Also emit a JSON version of the final report.",
+        help="📦 Also emit JSON report.",
     ),
 ):
     """
-    Generate fast HTML (and optional JSON) profiling reports,
-    with optional data-quality stubs.
+    Generate HTML (and optional JSON) profiling reports,
+    with sampling, custom configs, and GE stubs.
     """
-    # ensure output dir exists
     os.makedirs(out, exist_ok=True)
 
-    # If user just wants a GE stub, write it and exit non-zero immediately
+    # 1) Expectations‐stub mode
     if expectations:
         suite = {"expectations": []}
-        suite_path = out / "expectations.json"
-        with open(suite_path, "w") as f:
+        stub = out / "expectations.json"
+        with open(stub, "w") as f:
             json.dump(suite, f, indent=2)
         typer.secho(
-            f"🧪 Expectations suite written to {suite_path}",
-            fg=typer.colors.CYAN,
-            err=True,
+            f"🧪 Expectations stub written to {stub}", fg=typer.colors.CYAN, err=True
         )
-        # non-zero exit to indicate "validation stub" mode
         get_current_context().exit(1)
 
     start = time.time()
 
-    # Build reader kwargs (ignore any "extra" column)
-    reader_kwargs = {
-        "usecols": [c for c in pd.read_csv(filepath, nrows=0).columns if c != "extra"]
-    }
+    # 2) Build reader kwargs (ignore "extra" column if present)
+    reader_kwargs: Dict[str, Any] = {}
+    if filepath.suffix.lower() == ".csv":
+        cols = pd.read_csv(filepath, nrows=0).columns
+        reader_kwargs["usecols"] = [c for c in cols if c != "extra"]
 
-    # Ingest & sample
+    # 3) Load optional ProfileReport config
+    report_kwargs: Dict[str, Any] = {
+        "title": "Data Profiling Report",
+        "explorative": True,
+        "minimal": minimal,
+    }
+    if config:
+        with open(config) as cf:
+            report_kwargs.update(yaml.safe_load(cf))
+
+    # 4) Ingest & sample
     if reservoir_size:
         df = reservoir_sample(filepath, reservoir_size, chunksize, reader_kwargs)
-        typer.echo(f"🌀 Reservoir sample of {len(df)} rows drawn in one pass")
+        typer.echo(f"🌀 Reservoir sample of {len(df)} rows")
     else:
         parts = []
-        datetime_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")
-        for i, chunk in enumerate(
-            pd.read_csv(filepath, chunksize=chunksize, **reader_kwargs)
-        ):
+        dt_re = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")
+        for i, chunk in enumerate(load_data(filepath, reader_kwargs, chunksize)):
             if sample and 0 < sample < 1:
                 chunk = chunk.sample(frac=sample)
-            # datetime sanity check
-            for col in chunk.select_dtypes(include=["object"]).columns:
-                if datetime_re.match(str(chunk[col].iat[0])):
-                    invalid = chunk[~chunk[col].astype(str).str.match(datetime_re)]
-                    if not invalid.empty:
+            # datetime sanity
+            for col in chunk.select_dtypes(include=["object"]):
+                if dt_re.match(str(chunk[col].iat[0])):
+                    bad = chunk[~chunk[col].astype(str).str.match(dt_re)]
+                    if not bad.empty:
                         typer.secho(
                             f"⚠️ Invalid datetime in chunk {i}, col {col}",
                             fg=typer.colors.YELLOW,
                         )
-            mini = ProfileReport(chunk, explorative=True, minimal=True)
+            mini = ProfileReport(chunk, **report_kwargs)
             mini_path = out / f"chunk_{i:03d}.json"
             mini.to_file(mini_path)
-            typer.echo(f"➡️ Chunk {i} summary written to {mini_path}")
+            typer.echo(f"➡️ Chunk {i} summary → {mini_path}")
             parts.append(chunk)
         df = pd.concat(parts, ignore_index=True)
 
-    # Full profiling report
-    report = ProfileReport(
-        df, title="Data Profiling Report", explorative=True, minimal=minimal
-    )
-    html_path = out / "report.html"
-    report.to_file(html_path)
-    typer.secho(f"✅ HTML report written to {html_path}", fg=typer.colors.GREEN)
+    # 5) Full profiling
+    report = ProfileReport(df, **report_kwargs)
+    html = out / "report.html"
+    report.to_file(html)
+    typer.secho(f"✅ HTML report → {html}", fg=typer.colors.GREEN)
 
     if json_out:
-        json_path = out / "report.json"
-        report.to_file(json_path)
-        typer.echo(f"📦 JSON report written to {json_path}")
+        jpath = out / "report.json"
+        report.to_file(jpath)
+        typer.echo(f"📦 JSON report → {jpath}")
 
-    # Persist run metadata
-    duration = time.time() - start
+    # 6) Persist metadata
+    dur = time.time() - start
     conn = sqlite3.connect("runs.db")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS runs (
-          file       TEXT PRIMARY KEY,
-          duration   REAL,
-          sample     REAL,
-          chunksize  INTEGER,
-          reservoir  INTEGER DEFAULT 0,
-          timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
+          file TEXT PRIMARY KEY, duration REAL,
+          sample REAL, chunksize INTEGER,
+          reservoir INTEGER, timestamp DATETIME
+            DEFAULT CURRENT_TIMESTAMP
         )
-    """
+        """
     )
     conn.execute(
         """
-        INSERT INTO runs (file, duration, sample, chunksize, reservoir)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO runs(file,duration,sample,chunksize,reservoir)
+        VALUES(?,?,?,?,?)
         ON CONFLICT(file) DO UPDATE SET
-          duration  = excluded.duration,
-          sample    = excluded.sample,
-          chunksize = excluded.chunksize,
-          reservoir = excluded.reservoir
-    """,
-        (str(filepath), duration, sample or 0.0, chunksize, reservoir_size or 0),
+          duration=excluded.duration,
+          sample=excluded.sample,
+          chunksize=excluded.chunksize,
+          reservoir=excluded.reservoir
+        """,
+        (str(filepath), dur, sample or 0.0, chunksize, reservoir_size or 0),
     )
     conn.commit()
     conn.close()
 
-    typer.echo(f"⏱  Completed in {duration:.2f}s")
+    typer.echo(f"⏱ Completed in {dur:.2f}s")
 
 
 @app.command("plot-trends")
 def plot_trends(
-    db: Path = typer.Option(
-        Path("runs.db"), "--db", help="SQLite DB file containing profiling runs."
-    )
+    db: Path = typer.Option(Path("runs.db"), "--db", help="SQLite DB of past runs.")
 ):
-    """Plot runtime vs. sample-fraction trends from the runs table."""
+    """Scatter runtime vs. sample‐fraction (red=reservoir, blue=full)."""
     conn = sqlite3.connect(db)
-    df = pd.read_sql(
-        "SELECT timestamp, duration, sample, reservoir FROM runs ORDER BY timestamp",
-        conn,
-    )
+    df = pd.read_sql("SELECT timestamp,duration,sample,reservoir FROM runs", conn)
     conn.close()
 
     df["sample"] = df["sample"].fillna(0).astype(float)
@@ -216,66 +239,44 @@ def plot_trends(
         c=(df["reservoir"] > 0).map({True: "red", False: "blue"}),
         alpha=0.7,
     )
-    ax.set_xlabel("Sample Fraction")
-    ax.set_ylabel("Duration (s)")
-    ax.set_title("Duration vs. Sample Fraction")
-    legend_elems = [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            label="Reservoir run",
-            markerfacecolor="red",
-            markersize=8,
-        ),
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            label="Full-data run",
-            markerfacecolor="blue",
-            markersize=8,
-        ),
-    ]
-    ax.legend(handles=legend_elems)
+    ax.set(xlabel="Sample Fraction", ylabel="Duration (s)", title="Duration vs. Sample")
+    ax.legend(
+        handles=[
+            Line2D(
+                [], [], marker="o", color="w", label="Reservoir", markerfacecolor="red"
+            ),
+            Line2D(
+                [], [], marker="o", color="w", label="Full Data", markerfacecolor="blue"
+            ),
+        ]
+    )
     plt.tight_layout()
     plt.savefig("runtime_vs_sample.png")
-    typer.secho("📈 Scatter plot saved to runtime_vs_sample.png", fg=typer.colors.GREEN)
+    typer.secho("📈 Scatter saved → runtime_vs_sample.png", fg=typer.colors.GREEN)
 
 
 @app.command("aggregate-chunks")
 def aggregate_chunks(
-    reports_dir: Path = typer.Argument(
-        ..., exists=True, file_okay=False, help="Directory with `chunk_*.json` files."
-    ),
-    out: Path = typer.Option(
-        Path("summary.json"), help="Output JSON file for aggregated summary."
-    ),
+    reports_dir: Path = typer.Argument(..., exists=True, file_okay=False),
+    out: Path = typer.Option(Path("summary.json"), help="Aggregated JSON output"),
 ):
     """
-    Aggregate all per-chunk JSON summaries in REPORTS_DIR into a single JSON file.
+    Combine all chunk_*.json into one JSON.
     """
-    pattern = reports_dir / "chunk_*.json"
-    files = sorted(glob.glob(str(pattern)))
+    files = sorted(glob.glob(str(reports_dir / "chunk_*.json")))
     if not files:
-        typer.secho(
-            f"⚠️ No chunk JSON files found in {reports_dir}", fg=typer.colors.YELLOW
-        )
+        typer.secho(f"⚠️ No chunks in {reports_dir}", fg=typer.colors.YELLOW)
         raise typer.Exit(0)
 
-    aggregated = []
+    agg = []
     for path in files:
         with open(path) as f:
-            data = json.load(f)
-        aggregated.append({"chunk_file": os.path.basename(path), "profile": data})
+            agg.append({"chunk_file": Path(path).name, "profile": json.load(f)})
 
     with open(out, "w") as f:
-        json.dump({"chunks": aggregated}, f, indent=2)
+        json.dump({"chunks": agg}, f, indent=2)
 
-    typer.secho(
-        f"🔗 Aggregated {len(aggregated)} chunk summaries into {out}",
-        fg=typer.colors.GREEN,
-    )
+    typer.secho(f"🔗 Aggregated {len(agg)} chunks → {out}", fg=typer.colors.GREEN)
 
 
 def main():

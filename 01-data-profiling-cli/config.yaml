@@ -1,0 +1,30 @@
+# config.yaml
+# ──────────────────────────────────────────────────────────────
+
+# Title that appears in the HTML report
+title: "🔍 Custom Data Profiler Report"
+
+# Whether to use the interactive (explorative) UI
+explorative: false
+
+# Use minimal (lighter) or full profiling
+minimal: true
+
+# Number of threads to run in parallel (0 = auto-detect)
+pool_size: 2
+
+# Disable the built-in progress bar
+progress_bar: false
+
+# Correlation settings (show Pearson and Spearman)
+correlations:
+  pearson:
+    calculate: true
+  spearman:
+    calculate: true
+
+# Enable missing-value diagrams
+missing_diagrams:
+  bar: true
+  matrix: true
+  heatmap: false
