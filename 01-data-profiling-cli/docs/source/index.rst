@@ -13,32 +13,63 @@ Quickstart
 
     .. code-block:: bash
 
-        pip install dataprof
+       pip install dataprof
 
 2.  Minimal profiling:
 
     .. code-block:: bash
 
-        dataprof profile data.csv --minimal --out reports/
+       dataprof profile data.csv --minimal --out reports/
 
 3.  Reservoir sampling:
 
     .. code-block:: bash
 
-        dataprof profile data.csv --reservoir-size 1000 --out reports/
+       dataprof profile data.csv --reservoir-size 1000 --out reports/
 
 4.  Trend plotting:
 
     .. code-block:: bash
 
-        dataprof plot-trends --db runs.db
+       dataprof plot-trends --db runs.db
 
 5.  Chunk aggregation:
 
     .. code-block:: bash
 
-        dataprof aggregate-chunks reports/ --out summary.json
+       dataprof aggregate-chunks reports/ --out summary.json
 
+Configuration
+-------------
+
+You can customize your profiling report via a YAML file:
+
+.. code-block:: yaml
+
+   # config.yaml
+   title: "🔍 Custom Data Profiler Report"
+   explorative: false
+   minimal: true
+   pool_size: 2
+   progress_bar: false
+   correlations:
+     pearson:
+       calculate: true
+     spearman:
+       calculate: true
+   missing_diagrams:
+     bar: true
+     matrix: true
+     heatmap: false
+
+Example:
+
+.. code-block:: bash
+
+   dataprof profile data.csv \
+     --config config.yaml \
+     --minimal \
+     --out demo-config
 
 API Reference
 -------------
@@ -48,6 +79,21 @@ API Reference
 
    modules/index
 
+Installation
+------------
+
+.. toctree::
+   :maxdepth: 1
+
+   installation
+
+Configuration Reference
+-----------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   configuration
 
 Changelog
 ---------
@@ -56,7 +102,6 @@ Changelog
    :maxdepth: 1
 
    changelog
-
 
 Contributing
 ------------

@@ -24,32 +24,49 @@ pip install dataprof
 # Or from source
 poetry install
 poetry run pip install .
-Quickstart
+```
 
+## Quickstart
 1️⃣ Minimal profiling
+```bash
+
 dataprof profile data.csv \
   --minimal \
   --out reports/
-
 2️⃣ Reservoir sampling
+
+
 dataprof profile data.csv \
   --reservoir-size 1000 \
   --minimal \
-  --out reports/
+  --out reports-reservoir/
 
 3️⃣ Great Expectations stub
+Generates an empty expectations.json and exits non-zero:
 dataprof profile data.csv \
   --expectations
-# writes expectations.json then exits non-zero
 
 4️⃣ Trend plotting
+Produces runtime_vs_sample.png:
 dataprof plot-trends --db runs.db
+# then open runtime_vs_sample.png
 
 5️⃣ Chunk aggregation
+Merges per-chunk JSON into one summary.json:
 dataprof aggregate-chunks reports/ \
   --out summary.json
-Configuration via YAML
-You can customize ProfileReport parameters with a config.yaml:
+
+Sample structure of summary.json:
+
+{
+  "chunks": [
+    { "chunk_file": "chunk_000.json", "profile": { /* … */ } },
+    { "chunk_file": "chunk_001.json", "profile": { /* … */ } }
+  ]
+}
+
+6️⃣ Custom configuration
+Use your own YAML to tweak profiling parameters. For example, create config.yaml:
 
 # config.yaml
 title: "🔍 Custom Data Profiler Report"
@@ -66,15 +83,14 @@ missing_diagrams:
   bar: true
   matrix: true
   heatmap: false
-
 Then run:
 
-poetry run dataprof profile test.csv \
+poetry run dataprof profile data.csv \
   --config config.yaml \
   --minimal \
-  --out demo-cfg
-End-to-End
-From project root after committing:
+  --out reports-config/
+End-to-End Workflow
+From your project root (after committing all changes):
 
 
 # 1. Lock & install all deps (main + dev + docs)
@@ -85,7 +101,7 @@ poetry install --with dev,docs
 pre-commit install
 pre-commit run --all-files
 
-# 3. Test suite
+# 3. Run tests
 poetry run pytest -q
 
 # 4. Smoke test
@@ -94,17 +110,19 @@ poetry run dataprof profile sample.csv \
   --minimal \
   --out demo
 ls demo
+```
 
-# 5. Build packages
+# 5. Build distributable packages
+```bash
 poetry build
 Supported Formats
 CSV (default)
 
-Parquet (.parquet, .pq; requires pyarrow or fastparquet)
+Parquet (.parquet, .pq) — requires pyarrow or fastparquet
 
-Excel (.xls, .xlsx; requires openpyxl)
+Excel (.xls, .xlsx) — requires openpyxl
 
-Example:
+Examples:
 poetry run dataprof profile test.parquet \
   --full \
   --out demo-parquet
@@ -112,23 +130,19 @@ poetry run dataprof profile test.parquet \
 poetry run dataprof profile test.xlsx \
   --minimal \
   --out demo-xlsx
-```
-
-# Development & Contribution
+Development & Contribution
 We welcome issues and PRs!
 
-```bash
-Fork & clone
-
+# 1. Fork & clone
+# 2. Install dependencies
 poetry install --with dev,docs
 
-Implement & add tests in tests/
-
-pre-commit run --all-files → pytest -q
-
-Open a PR
+# 3. Implement & add tests under tests/
+pre-commit run --all-files
+pytest -q
 ```
 
+# 4. Open a PR!
 Please see CONTRIBUTING.md for full guidelines.
 
 © 2025 rken — MIT License
