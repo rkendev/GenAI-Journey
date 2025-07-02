@@ -71,42 +71,11 @@ Example:
      --minimal \
      --out demo-config
 
-API Reference
--------------
-
 .. toctree::
-   :maxdepth: 1
-
-   modules/index
-
-Installation
-------------
-
-.. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    installation
-
-Configuration Reference
------------------------
-
-.. toctree::
-   :maxdepth: 1
-
    configuration
-
-Changelog
----------
-
-.. toctree::
-   :maxdepth: 1
-
+   modules/index
    changelog
-
-Contributing
-------------
-
-.. toctree::
-   :maxdepth: 1
-
    contributing

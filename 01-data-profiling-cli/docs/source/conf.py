@@ -1,3 +1,5 @@
+import sphinx_rtd_theme
+
 # Configuration file for the Sphinx documentation builder.
 
 # -- Project information -----------------------------------------------------
@@ -17,26 +19,14 @@ exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = "sphinx_rtd_theme"
-
-# Theme-specific options
-html_theme_options = {
-    "navigation_depth": 4,
-    "collapse_navigation": False,
-    "logo_only": False,
-}
-
-# Static files (e.g., style sheets) path
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_static_path = ["_static"]
 
-# Optional: Add a logo and favicon if available
-# html_logo = "_static/logo.png"
-# html_favicon = "_static/favicon.ico"
-
-# Show GitHub link in the theme
+# Show "Edit on GitHub" links in the sidebar
 html_context = {
-    "display_github": True,  # Integrate GitHub
-    "github_user": "rkendev",  # Username
-    "github_repo": "dataprof",  # Repo name
-    "github_version": "main/docs/source",  # Path in the repo
-    "conf_py_path": "/docs/source/",  # Path to docs root
+    "display_github": True,
+    "github_user": "rkendev",
+    "github_repo": "dataprof",
+    "github_version": "main/docs/source/",
+    "conf_py_path": "/docs/source/",
 }

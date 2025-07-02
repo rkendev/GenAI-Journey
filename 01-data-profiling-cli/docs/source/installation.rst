@@ -5,8 +5,16 @@ Dependencies
 ------------
 
 - **Python 3.11+**  
-- **Poetry** (for dev & docs): `pip install poetry`  
-- **Sphinx** + RTD theme: pulled in via `poetry install --with docs`
+- **Poetry** (for development & docs):  
+  .. code-block:: bash
+
+     pip install poetry
+
+- **Sphinx** + Read-the-Docs theme: pulled in via
+
+  .. code-block:: bash
+
+     poetry install --with docs
 
 Supported Input Formats
 -----------------------
@@ -23,8 +31,5 @@ Example
    # From PyPI
    pip install dataprof
 
-   # Or with full extras
-   pip install dataprof[validation]
-
-
-
+   # Or install with all extras
+   pip install "dataprof[validation]"

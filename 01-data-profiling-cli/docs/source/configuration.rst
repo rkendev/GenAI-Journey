@@ -1,7 +1,8 @@
-Configuration via YAML
-======================
+Configuration Reference
+=======================
 
-You can override any of `ProfileReport`’s parameters by passing `--config config.yaml`.
+You can override any of `ProfileReport`’s parameters by passing
+`--config config.yaml`.
 
 Sample `config.yaml`
 --------------------
