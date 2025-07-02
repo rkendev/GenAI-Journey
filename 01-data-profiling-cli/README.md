@@ -3,6 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/dataprof.svg)](https://pypi.org/project/dataprof)  
 [![GitHub Actions CI](https://github.com/rkendev/dataprof/actions/workflows/ci.yml/badge.svg)](https://github.com/rkendev/dataprof/actions)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Codecov Coverage](https://img.shields.io/codecov/c/gh/rkendev/dataprof/main.svg?label=coverage)](https://app.codecov.io/gh/rkendev/dataprof)  
 
 A **fast**, **extensible** command-line interface for profiling tabular data, with:
 
