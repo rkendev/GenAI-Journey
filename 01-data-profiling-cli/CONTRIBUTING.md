@@ -1,59 +1,119 @@
 # Contributing to Data Profiling CLI
 
-Thank you for your interest in contributing!  Please take a moment to read through this guide.
+Thank you for your interest in contributing to Data Profiling CLI! We welcome contributions of all kinds—bug reports, feature requests, documentation improvements, and code enhancements.
 
-## Filing Issues
+Filing Issues
 
-- **Bug reports**: Use the “Bug report” template. Include:
-  - A clear description of the problem.
-  - Steps to reproduce.
-  - Expected vs. actual behavior.
-  - Your environment (`dataprof --version`, Python, OS).
+We use GitHub's issue templates to streamline bug reports and feature requests. Please select the appropriate template and provide as much detail as possible.
 
-- **Feature requests**: Use the “Feature request” template. Describe:
-  - The use-case for the new feature.
-  - Any relevant examples or links.
+## Bug reports
 
-## Getting the Code
+Use the Bug report template.
 
+Include:
+
+A clear, descriptive title.
+
+Steps to reproduce the issue.
+
+Expected vs. actual behavior.
+
+Environment details:
+
+dataprof --version
+
+Python version (python --version)
+
+Operating system.
+
+## Feature requests
+
+Use the Feature request template.
+
+### Describe:
+
+- The problem you’re trying to solve.
+
+- Your proposed solution or desired behavior.
+
+- Any relevant examples or references.
+
+- Your First Code Contribution
+
+### Fork the repository on GitHub: https://github.com/rkendev/dataprof.
+
+Clone your fork locally:
 ```bash
-# Clone your fork, then install all deps:
-git clone git@github.com:<your-user>/dataprof.git
+git clone git@github.com:<your-username>/dataprof.git
 cd dataprof
-poetry install --with dev,docs
-Code Style
-We follow Black, Ruff, and isort.
 
-Before pushing, run:
+Install dependencies (including dev and docs groups):
+
+poetry install --with dev,docs
+
+Set up pre-commit hooks for formatting and linting:
 
 pre-commit install
 pre-commit run --all-files
-Running Tests
+````
 
-# Run entire suite:
+## Code Style & Quality
+
+We follow these tools to maintain code consistency:
+
+[Black] for code formatting
+
+[Ruff] for linting
+
+[isort] for import sorting
+
+### Run them locally before committing:
+```bash
+pre-commit run --all-files
+
+Running Tests & Coverage
+
+We use pytest with pytest-cov to ensure code correctness and coverage.
+
+Run all tests:
+
 poetry run pytest -q
 
-# Run a single test file:
-poetry run pytest tests/test_cli.py -q
+Run tests with coverage:
+
+poetry run pytest --cov=dataprof --cov-report=term-missing
 ```
 
 ## Documentation
-Your doc sources live under docs/source/.
 
-To build:
+Documentation source files are under docs/source/. We use Sphinx with the ReadTheDocs theme.
 
+Build the docs locally:
 ```bash
 poetry run sphinx-build -b html docs/source docs/_build/html
 open docs/_build/html/index.html
-```bash
 
-## Pull Request Guidelines
-Create a new branch: git checkout -b feat/my-feature
+Edit or add new .rst files as needed.
 
-Make your changes, adding tests where appropriate.
+Pull Request Guidelines
 
-Update docs if you’ve added or changed functionality.
+Create a new branch from main:
 
-Ensure all hooks and tests pass locally.
+git checkout -b feat/my-feature  
 
-Push your branch and open a PR against main.
+Make your changes, ensuring new features have tests and documentation.
+
+Commit with clear, conventional-style messages.
+
+Push your branch and open a Pull Request against main.
+
+The CI will run linting, formatting checks, tests, and coverage.
+
+Address any review feedback.
+```
+
+## Code of Conduct
+
+This project follows the Contributor Covenant. By participating, you agree to abide by its terms.
+
+Thank you for helping make Data Profiling CLI better! We appreciate your time and effort.
