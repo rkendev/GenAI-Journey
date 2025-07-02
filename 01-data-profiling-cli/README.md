@@ -1,12 +1,19 @@
 # Data Profiling CLI
 
-[![PyPI version](https://img.shields.io/pypi/v/dataprof.svg)](https://pypi.org/project/dataprof)
-[![GitHub Actions CI](https://github.com/rkendev/dataprof/actions/workflows/ci.yml/badge.svg)](https://github.com/rkendev/dataprof/actions)
+[![PyPI version](https://img.shields.io/pypi/v/dataprof.svg)](https://pypi.org/project/dataprof)  
+[![GitHub Actions CI](https://github.com/rkendev/dataprof/actions/workflows/ci.yml/badge.svg)](https://github.com/rkendev/dataprof/actions)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A fast, extensible command-line interface for profiling tabular data.  
-Supports chunk-wise sampling, reservoir sampling, minimal vs. full reports,  
-and optional Great Expectations expectation-suite stubs.
+A **fast**, **extensible** command-line interface for profiling tabular data, with:
+
+- Chunk-wise sampling & reservoir sampling  
+- Minimal vs. full (explorative) HTML/JSON reports  
+- Optional Great Expectations expectation-suite stubs  
+- Support for CSV, Parquet, and Excel inputs  
+- Trend plotting and chunk aggregation utilities  
+- Custom profiler config via YAML
+
+---
 
 ## Installation
 
@@ -17,63 +24,111 @@ pip install dataprof
 # Or from source
 poetry install
 poetry run pip install .
-```
+Quickstart
 
-# Quickstart
+1️⃣ Minimal profiling
+dataprof profile data.csv \
+  --minimal \
+  --out reports/
 
-# 1️⃣ Generate a minimal HTML profile
-dataprof profile data.csv --minimal --out reports/
+2️⃣ Reservoir sampling
+dataprof profile data.csv \
+  --reservoir-size 1000 \
+  --minimal \
+  --out reports/
 
-# 2️⃣ Emit a GE expectation stub and fail on validation
-dataprof profile data.csv --expectations
+3️⃣ Great Expectations stub
+dataprof profile data.csv \
+  --expectations
+# writes expectations.json then exits non-zero
 
-# 3️⃣ Plot runtime vs. sample fraction
+4️⃣ Trend plotting
 dataprof plot-trends --db runs.db
 
-# 4️⃣ Aggregate per-chunk summaries into one JSON
-dataprof aggregate-chunks reports/ --out summary.json
+5️⃣ Chunk aggregation
+dataprof aggregate-chunks reports/ \
+  --out summary.json
+Configuration via YAML
+You can customize ProfileReport parameters with a config.yaml:
+
+# config.yaml
+title: "🔍 Custom Data Profiler Report"
+explorative: false
+minimal: true
+pool_size: 2
+progress_bar: false
+correlations:
+  pearson:
+    calculate: true
+  spearman:
+    calculate: true
+missing_diagrams:
+  bar: true
+  matrix: true
+  heatmap: false
+
+Then run:
+
+poetry run dataprof profile test.csv \
+  --config config.yaml \
+  --minimal \
+  --out demo-cfg
+End-to-End
+From project root after committing:
 
 
----
-
-## 5. End-to-End Commands
-
-Run these from your project root to lock, install, lint, test, smoke-test and build:
-
-```bash
-# 1. Update lock and install all deps (main+dev):
+# 1. Lock & install all deps (main + dev + docs)
 poetry lock
-poetry install
+poetry install --with dev,docs
 
-# 2. Set up and run pre-commit hooks:
+# 2. Pre-commit checks
 pre-commit install
 pre-commit run --all-files
 
-# 3. Execute the test suite:
+# 3. Test suite
 poetry run pytest -q
 
-# 4. Smoke-test the CLI locally:
+# 4. Smoke test
 echo -e "x,y\n1,2" > sample.csv
-poetry run dataprof profile sample.csv --minimal --out demo
+poetry run dataprof profile sample.csv \
+  --minimal \
+  --out demo
 ls demo
-```bash
 
+# 5. Build packages
+poetry build
+Supported Formats
+CSV (default)
 
-### 5.1 For cown excel files
-```bash
-# 1) Reservoir sampling
-dataprof profile large.csv --reservoir-size 100 --out reports/
+Parquet (.parquet, .pq; requires pyarrow or fastparquet)
 
-# 2) Chunk-wise minimal profiling
-dataprof profile data.csv --sample 0.1 --minimal --out reports/
+Excel (.xls, .xlsx; requires openpyxl)
 
-# 3) Plotting trends
-dataprof plot-trends --db runs.db
+Example:
+poetry run dataprof profile test.parquet \
+  --full \
+  --out demo-parquet
 
-# 4) Aggregating chunks
-dataprof aggregate-chunks reports/ --out summary.json
+poetry run dataprof profile test.xlsx \
+  --minimal \
+  --out demo-xlsx
 ```
 
+# Development & Contribution
+We welcome issues and PRs!
 
-# 5. Build distributable packages:
-poetry build
+```bash
+Fork & clone
+
+poetry install --with dev,docs
+
+Implement & add tests in tests/
+
+pre-commit run --all-files → pytest -q
+
+Open a PR
+```
+
+Please see CONTRIBUTING.md for full guidelines.
+
+© 2025 rken — MIT License

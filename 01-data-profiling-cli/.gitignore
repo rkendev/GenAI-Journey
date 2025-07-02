@@ -32,3 +32,17 @@ runtime_vs_sample.png
 
 
 venv-tp/
+
+# locally generated demos & test outputs
+demo*/
+outdir/
+
+# Sphinx build
+/docs/_build/
+
+# Virtual environments
+venv*/
+venv-local/
+venv-pypi/
+venv-tp/
+
