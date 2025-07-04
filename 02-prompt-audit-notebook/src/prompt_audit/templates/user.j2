@@ -1,0 +1,10 @@
+{# ---- user.j2 ---- #}
+Question:
+{{ question }}
+
+Context:
+{{ context | trim }}
+
+{%- if format %}
+Return the answer as {{ format }}.
+{%- endif %}

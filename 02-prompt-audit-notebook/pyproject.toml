@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "prompt-audit"
+version = "0.1.0"
+description = "Prompt audit toolkit"
+authors = ["YOUR NAME <you@example.com>"]
+readme = "README.md"
+
+# include BOTH packages that live under src/
+packages = [
+  { include = "prompt_audit", from = "src" },
+  { include = "audit_eval",   from = "src" },
+]
+
+# CLI entry-point (classic syntax)
+[tool.poetry.scripts]
+audit-eval = "audit_eval.cli:app"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+openai = "*"
+tiktoken = "*"
+jinja2 = "*"
+tenacity = "*"
+rich = "*"
+pydantic-settings = "*"
+pyyaml = "^6.0.2"
+typer = "^0.16.0"
+tabulate = "^0.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-sugar = "*"
+pytest-cov = "*"
+
+[tool.poetry.group.eval.dependencies]
+pandas = "^2.3.0"
+rich = "^14.0.0"

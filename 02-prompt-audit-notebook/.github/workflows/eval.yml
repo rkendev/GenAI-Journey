@@ -1,0 +1,50 @@
+name: Prompt-Audit CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1 – Fetch repository
+      - uses: actions/checkout@v4
+
+      # 2 – Install Python 3.11
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3 – Install Poetry (latest 1.x) and add to PATH
+      - uses: abatilo/actions-poetry@v3
+
+      # 4 – Install project dependencies (cached by Poetry itself)
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      # 5 – Run the full evaluation (no sampling)
+      - name: Grade full benchmark
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          poetry run audit-eval run --sample 1.0
+
+      # 6 – Compute accuracy and enforce 90 % gate
+      - name: Enforce pass-rate gate
+        shell: bash
+        run: |
+          DB=$(ls -t outputs/run_*.sqlite | head -n1)
+          ACC=$(sqlite3 "$DB" 'SELECT ROUND(AVG(passed)*100,1) FROM eval;')
+          echo "Accuracy = $ACC %"
+          THRESH=90
+          awk "BEGIN {exit !($ACC < THRESH)}" </dev/null && exit 1 || echo "Gate passed ✅"
+
+      # 7 – Upload the Markdown report for reviewers
+      - name: Publish evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: outputs/*.md
