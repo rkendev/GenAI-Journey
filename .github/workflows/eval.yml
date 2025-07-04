@@ -1,0 +1,48 @@
+name: Prompt-Audit CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Get code
+      - uses: actions/checkout@v4                      # ↩︎ fetch repo
+
+      # 2) Set up Python & Poetry
+      - uses: actions/setup-python@v5                  # ↩︎ Python 3.11
+        with: { python-version: '3.11' }
+
+      - uses: abatilo/actions-poetry@v3                # ↩︎ installs Poetry 1.x :contentReference[oaicite:4]{index=4}
+
+      # 3) Install deps *with cache*
+      - name: Install project
+        run: poetry install --no-interaction --no-root
+
+      # 4) Run the harness (100 % of dataset, no sampling here)
+      - name: Grade full benchmark
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # keep key secret
+        run: |
+          poetry run audit-eval run --sample 1.0
+
+      # 5) Extract accuracy from newest SQLite file
+      - name: Compute accuracy & enforce gate
+        run: |
+          DB=$(ls -t outputs/run_*.sqlite | head -n1)                                # newest file
+          ACC=$(sqlite3 "$DB" "SELECT ROUND(AVG(passed)*100,1) FROM eval;")          # :contentReference[oaicite:5]{index=5}
+          echo "Accuracy = $ACC%"
+          # Fail if < 90 %
+          thresh=90
+          awk "BEGIN {exit !($ACC < thresh)}" </dev/null && exit 1 || echo "Gate passed ✅"
+
+      # 6) Upload markdown report as artifact
+      - name: Publish markdown report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: outputs/*.md

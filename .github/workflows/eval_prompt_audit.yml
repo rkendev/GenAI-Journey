@@ -1,0 +1,74 @@
+name: Prompt-Audit CI
+
+# ──────────────────────────────────────────────────────────────
+# Trigger rules
+#   • Run on every push / PR that touches 02-prompt-audit-notebook
+#   • You can add a nightly cron if you’d like drift alerts
+# ──────────────────────────────────────────────────────────────
+on:
+  push:
+    paths:
+      - "02-prompt-audit-notebook/**"
+      - ".github/workflows/eval_prompt_audit.yml"
+  pull_request:
+    paths:
+      - "02-prompt-audit-notebook/**"
+      - ".github/workflows/eval_prompt_audit.yml"
+  workflow_dispatch:
+  # Uncomment for nightly regression run at 03:00 UTC
+  # schedule:
+  #   - cron: "0 3 * * *"
+
+jobs:
+  evaluate:
+    name: Run benchmark & enforce 90 % gate
+    runs-on: ubuntu-latest
+
+    steps:
+    # ── 1 Checkout repo ───────────────────────────────────────
+    - uses: actions/checkout@v4
+
+    # ── 2 Set up Python & Poetry ─────────────────────────────
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - uses: abatilo/actions-poetry@v3
+      with:
+        poetry-version: "1.8.2"
+
+    # ── 3 Cache Poetry virtualenvs for faster runs ───────────
+    - name: Load Poetry cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pypoetry
+        key: ${{ runner.os }}-poetry-${{ hashFiles('**/pyproject.toml') }}
+
+    # ── 4 Install project deps (no editable install) ─────────
+    - name: Install dependencies
+      run: poetry install --no-interaction --no-root
+
+    # ── 5 Run the full benchmark on the entire CSV ───────────
+    - name: Grade full benchmark
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      working-directory: 02-prompt-audit-notebook
+      run: poetry run audit-eval run --sample 1.0
+
+    # ── 6 Compute accuracy and fail if < 90 % ────────────────
+    - name: Enforce pass-rate gate
+      shell: bash
+      working-directory: 02-prompt-audit-notebook
+      run: |
+        DB=$(ls -t outputs/run_*.sqlite | head -n1)
+        ACC=$(sqlite3 "$DB" 'SELECT ROUND(AVG(passed)*100,1) FROM eval;')
+        echo "Accuracy = $ACC %"
+        THRESH=90
+        awk "BEGIN {exit !($ACC < THRESH)}" </dev/null && exit 1 || echo "Gate passed ✅"
+
+    # ── 7 Upload the markdown report so reviewers can read it ─
+    - name: Upload evaluation report
+      uses: actions/upload-artifact@v4
+      with:
+        name: eval-report
+        path: 02-prompt-audit-notebook/outputs/*.md
